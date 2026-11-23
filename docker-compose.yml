@@ -1,0 +1,90 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: p2p_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-p2p_db}
+      - DB_USERNAME=${DB_USERNAME:-p2p_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+    networks:
+      - p2p_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: p2p_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - p2p_network
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.0
+    container_name: p2p_mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-p2p_db}
+      MYSQL_USER: ${DB_USERNAME:-p2p_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - p2p_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: p2p_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work database --sleep=3 --tries=3
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-p2p_db}
+      - DB_USERNAME=${DB_USERNAME:-p2p_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+    networks:
+      - p2p_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+networks:
+  p2p_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
