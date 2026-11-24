@@ -218,6 +218,17 @@
                 Dashboard
             </a>
 
+            <span class="nav-section-title">Procurement</span>
+            <a href="{{ route('pr.index') }}" class="{{ request()->routeIs('pr.*') ? 'active' : '' }}">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Requisitions (PR)
+            </a>
+
+            <a href="{{ route('approvals.pending') }}" class="{{ request()->routeIs('approvals.pending') ? 'active' : '' }}">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Pending Approvals
+            </a>
+
             @if(Auth::user()->hasAnyRole(['Admin', 'Procurement Officer']))
                 <span class="nav-section-title">Administration</span>
 
@@ -261,5 +272,82 @@
             @yield('content')
         </div>
     </main>
+
+    <!-- Modern Confirmation Modal Component -->
+    <div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+        <div style="background:#ffffff; border-radius:12px; max-width:440px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.04); overflow:hidden; border:1px solid #e2e8f0; animation:modalPop 0.15s ease-out;">
+            <div style="padding:1.5rem;">
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div id="confirmModalIcon" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#dbeafe; color:#2563eb; flex-shrink:0;">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <h3 id="confirmModalTitle" style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:700;">Confirm Action</h3>
+                </div>
+                <p id="confirmModalMessage" style="margin:0; color:#475569; font-size:0.95rem; line-height:1.5;">Are you sure you want to proceed?</p>
+            </div>
+            <div style="background:#f8fafc; padding:0.85rem 1.5rem; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid #e2e8f0;">
+                <button type="button" id="confirmModalCancelBtn" class="btn btn-secondary" style="padding:0.5rem 1rem; font-size:0.9rem;">Cancel</button>
+                <button type="button" id="confirmModalOkBtn" class="btn" style="background:#2563eb; padding:0.5rem 1.25rem; font-size:0.9rem; font-weight:600;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modalPop {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+
+    <script>
+        let modalResolve = null;
+
+        function showModernConfirm({ title = 'Confirm Action', message, confirmText = 'Confirm', confirmColor = '#2563eb', iconType = 'info' }) {
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+                const modal = document.getElementById('confirmModal');
+                const titleEl = document.getElementById('confirmModalTitle');
+                const messageEl = document.getElementById('confirmModalMessage');
+                const okBtn = document.getElementById('confirmModalOkBtn');
+                const iconContainer = document.getElementById('confirmModalIcon');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                okBtn.textContent = confirmText;
+                okBtn.style.backgroundColor = confirmColor;
+
+                if (iconType === 'danger') {
+                    iconContainer.style.background = '#fee2e2';
+                    iconContainer.style.color = '#dc2626';
+                } else if (iconType === 'success') {
+                    iconContainer.style.background = '#dcfce7';
+                    iconContainer.style.color = '#16a34a';
+                } else {
+                    iconContainer.style.background = '#dbeafe';
+                    iconContainer.style.color = '#2563eb';
+                }
+
+                modal.style.display = 'flex';
+            });
+        }
+
+        document.getElementById('confirmModalCancelBtn').addEventListener('click', () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            if (modalResolve) modalResolve(false);
+        });
+
+        document.getElementById('confirmModalOkBtn').addEventListener('click', () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            if (modalResolve) modalResolve(true);
+        });
+
+        // Close on backdrop click
+        document.getElementById('confirmModal').addEventListener('click', (e) => {
+            if (e.target.id === 'confirmModal') {
+                document.getElementById('confirmModal').style.display = 'none';
+                if (modalResolve) modalResolve(false);
+            }
+        });
+    </script>
 </body>
 </html>
