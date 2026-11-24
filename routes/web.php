@@ -61,6 +61,16 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Budget Control & Ledger Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('budgets')->name('budgets.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BudgetController::class, 'index'])->name('index');
+        Route::get('/{budget}', [\App\Http\Controllers\BudgetController::class, 'show'])->name('show');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Generic Approval Actions & Queue
     |--------------------------------------------------------------------------
     */

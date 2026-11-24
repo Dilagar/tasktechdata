@@ -14,6 +14,7 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'company_id',
         'po_number',
+        'po_date',
         'vendor_id',
         'cost_centre_id',
         'buyer_id',
@@ -25,6 +26,7 @@ class PurchaseOrder extends Model
         'tax_total',
         'total_amount',
         'grand_total',
+        'committed_amount',
         'payment_terms_days',
         'notes',
     ];
@@ -33,6 +35,7 @@ class PurchaseOrder extends Model
     {
         return [
             'status' => PoStatus::class,
+            'po_date' => 'date',
             'subtotal' => 'decimal:2',
             'total_cgst' => 'decimal:2',
             'total_sgst' => 'decimal:2',
@@ -40,6 +43,7 @@ class PurchaseOrder extends Model
             'tax_total' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'grand_total' => 'decimal:2',
+            'committed_amount' => 'decimal:2',
             'payment_terms_days' => 'integer',
         ];
     }

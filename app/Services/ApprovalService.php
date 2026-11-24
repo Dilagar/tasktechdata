@@ -190,6 +190,13 @@ class ApprovalService
                 ->get();
 
             if ($remainingPendingSteps->isEmpty()) {
+                // If document is a Purchase Order, commit budget in the SAME transaction BEFORE marking APPROVED.
+                // If BudgetExceededException is thrown, the entire transaction rolls back:
+                // step stays PENDING, PO stays PENDING_APPROVAL, and the exception bubbles up to the caller.
+                if ($document instanceof PurchaseOrder) {
+                    event(new PurchaseOrderApproved($document));
+                }
+
                 // Last step completed -> Full approval achieved
                 $request->status = 'APPROVED';
                 $request->save();
@@ -212,12 +219,8 @@ class ApprovalService
                     $user->id
                 );
 
-                // Fire events
+                // Fire general approval completed event
                 event(new ApprovalCompleted($document));
-                if ($document instanceof PurchaseOrder) {
-                    // Dispatch PurchaseOrderApproved event (no listeners for now; budget commitment comes later)
-                    event(new PurchaseOrderApproved($document));
-                }
             } else {
                 // Move current_step to the next pending step sequence
                 $nextStep = $remainingPendingSteps->first();

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\PurchaseOrderApproved;
+use App\Listeners\CommitBudgetOnPoApproved;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseRequisition;
 use App\Models\User;
@@ -9,6 +11,7 @@ use App\Models\Vendor;
 use App\Policies\PurchaseRequisitionPolicy;
 use App\Policies\VendorPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Vendor::class, VendorPolicy::class);
         Gate::policy(PurchaseRequisition::class, PurchaseRequisitionPolicy::class);
         Gate::policy(PurchaseOrder::class, \App\Policies\PurchaseOrderPolicy::class);
+        Gate::policy(\App\Models\Budget::class, \App\Policies\BudgetPolicy::class);
 
         // Gate: manage-users (Admin only)
         Gate::define('manage-users', function (User $user) {

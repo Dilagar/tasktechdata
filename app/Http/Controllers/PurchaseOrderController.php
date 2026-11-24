@@ -27,7 +27,8 @@ class PurchaseOrderController extends Controller
 
     public function __construct(
         protected ApprovalService $approvalService,
-        protected CreatePurchaseOrder $createPoAction
+        protected CreatePurchaseOrder $createPoAction,
+        protected \App\Services\BudgetService $budgetService
     ) {
     }
 
@@ -251,28 +252,44 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Cancel DRAFT or PENDING_APPROVAL PO.
+     * Cancel a PO: allowed for DRAFT, PENDING_APPROVAL, APPROVED and PARTIALLY_RECEIVED.
+     * For APPROVED and PARTIALLY_RECEIVED: comment is mandatory and releases remaining committed budget.
      */
-    public function cancel(PurchaseOrder $po): RedirectResponse
+    public function cancel(Request $request, PurchaseOrder $po): RedirectResponse
     {
         $this->authorize('cancel', $po);
 
+        $oldStatus = is_object($po->status) ? $po->status->value : (string) $po->status;
+        $isApprovedOrReceived = in_array($oldStatus, ['APPROVED', 'PARTIALLY_RECEIVED'], true);
+
+        if ($isApprovedOrReceived) {
+            $request->validate([
+                'comment' => ['required', 'string', 'min:3', 'max:1000'],
+            ]);
+        }
+
+        $comment = $request->input('comment', 'Purchase Order cancelled by procurement officer');
+
         try {
-            DB::transaction(function () use ($po) {
-                $oldStatus = is_object($po->status) ? $po->status->value : (string) $po->status;
+            DB::transaction(function () use ($po, $oldStatus, $isApprovedOrReceived, $comment) {
+                // If PO was APPROVED or PARTIALLY_RECEIVED, release the committed budget back
+                if ($isApprovedOrReceived) {
+                    $this->budgetService->release($po, Auth::user());
+                }
+
                 $po->status = PoStatus::CANCELLED;
                 $po->save();
 
-                // If it had an active approval request, mark request as REJECTED/CANCELLED
+                // If it had an active approval request, mark request as CANCELLED
                 if ($appReq = $po->approvalRequests()->first()) {
                     $appReq->status = 'CANCELLED';
                     $appReq->save();
                 }
 
-                AuditLogger::log($po, $oldStatus, 'CANCELLED', 'Purchase Order cancelled by procurement officer', Auth::id());
+                AuditLogger::log($po, $oldStatus, 'CANCELLED', $comment, Auth::id());
             });
 
-            return redirect()->route('po.show', $po)->with('success', 'Purchase Order has been cancelled.');
+            return redirect()->route('po.show', $po)->with('success', 'Purchase Order has been cancelled successfully.');
         } catch (\Throwable $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

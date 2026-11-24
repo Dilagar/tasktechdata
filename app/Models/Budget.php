@@ -33,8 +33,14 @@ class Budget extends Model
         return $this->belongsTo(CostCentre::class);
     }
 
-    public function availableAmount(): float
+    public function transactions()
     {
-        return (float) ($this->amount - ($this->committed + $this->spent));
+        return $this->hasMany(BudgetTransaction::class)->orderBy('id');
+    }
+
+    public function availableAmount(): string
+    {
+        $used = bcadd((string) $this->committed, (string) $this->spent, 2);
+        return bcsub((string) $this->amount, $used, 2);
     }
 }

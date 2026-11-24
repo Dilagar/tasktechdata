@@ -58,6 +58,7 @@ class PurchaseOrderPolicy
 
     /**
      * Determine whether the user can cancel the PO.
+     * Allowed for DRAFT, PENDING_APPROVAL, APPROVED and PARTIALLY_RECEIVED.
      */
     public function cancel(User $user, PurchaseOrder $po): bool
     {
@@ -65,6 +66,11 @@ class PurchaseOrderPolicy
             return false;
         }
 
-        return $user->hasRole('Procurement Officer') && in_array($po->status, [PoStatus::DRAFT, PoStatus::PENDING_APPROVAL], true);
+        return $user->hasRole('Procurement Officer') && in_array($po->status, [
+            PoStatus::DRAFT,
+            PoStatus::PENDING_APPROVAL,
+            PoStatus::APPROVED,
+            PoStatus::PARTIALLY_RECEIVED,
+        ], true);
     }
 }

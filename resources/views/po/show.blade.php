@@ -37,10 +37,11 @@
                 </form>
             @endif
 
-            @if (in_array($statusStr, ['DRAFT', 'PENDING_APPROVAL']) && Auth::user()->hasRole('Procurement Officer'))
+            @if (in_array($statusStr, ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PARTIALLY_RECEIVED']) && Auth::user()->hasRole('Procurement Officer'))
                 <form id="cancelPoForm" method="POST" action="{{ route('po.cancel', $po) }}">
                     @csrf
-                    <button type="button" class="btn" style="background-color: #dc2626;" onclick="confirmCancelPo()">
+                    <input type="hidden" name="comment" id="cancelPoCommentInput" value="">
+                    <button type="button" class="btn" style="background-color: #dc2626;" onclick="confirmCancelPo('{{ $statusStr }}')">
                         Cancel PO
                     </button>
                 </form>
@@ -279,15 +280,26 @@
         }
     }
 
-    async function confirmCancelPo() {
+    async function confirmCancelPo(status) {
+        let comment = 'Purchase Order cancelled by procurement officer';
+        if (status === 'APPROVED' || status === 'PARTIALLY_RECEIVED') {
+            const promptReason = prompt('Please enter the mandatory reason for cancelling this ' + status + ' PO (Committed budget will be released):');
+            if (!promptReason || promptReason.trim() === '') {
+                alert('A cancellation comment is required.');
+                return;
+            }
+            comment = promptReason.trim();
+        }
+
         const ok = await showModernConfirm({
             title: 'Cancel Purchase Order',
-            message: 'Are you sure you want to cancel this Purchase Order? This action cannot be undone.',
+            message: 'Are you sure you want to cancel this Purchase Order? Committed budget will be released back.',
             confirmText: 'Cancel PO',
             confirmColor: '#dc2626',
             iconType: 'danger'
         });
         if (ok) {
+            document.getElementById('cancelPoCommentInput').value = comment;
             document.getElementById('cancelPoForm').submit();
         }
     }
