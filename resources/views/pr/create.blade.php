@@ -47,7 +47,7 @@
         <div id="lines-container">
             <!-- Line 1 -->
             <div class="line-row" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; margin-bottom: 1rem;">
-                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 1rem; align-items: start;">
                     <div>
                         <label style="display: block; font-size: 0.85rem; font-weight: 600;">Item *</label>
                         <select name="lines[0][item_id]" required style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
@@ -61,12 +61,12 @@
 
                     <div>
                         <label style="display: block; font-size: 0.85rem; font-weight: 600;">Quantity *</label>
-                        <input type="number" step="0.001" min="0.001" name="lines[0][quantity]" value="{{ old('lines.0.quantity', '1') }}" required style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        <input type="number" step="0.001" min="0.001" id="pr-qty-0" name="lines[0][quantity]" value="{{ old('lines.0.quantity', '1') }}" required oninput="calcLineTotal(0)" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
                     </div>
 
                     <div>
                         <label style="display: block; font-size: 0.85rem; font-weight: 600;">UOM *</label>
-                        <select name="lines[0][uom_code]" required style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        <select name="lines[0][uom_code]" id="pr-uom-0" required onchange="updatePriceLabel(0); calcLineTotal(0);" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
                             @foreach ($uoms as $uom)
                                 <option value="{{ $uom->code }}">{{ $uom->code }}</option>
                             @endforeach
@@ -74,8 +74,13 @@
                     </div>
 
                     <div>
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600;">Est. Unit Price (₹) *</label>
-                        <input type="number" step="0.01" min="0" name="lines[0][estimated_unit_price]" value="{{ old('lines.0.estimated_unit_price', '12500.00') }}" required style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        <label id="pr-price-label-0" style="display: block; font-size: 0.85rem; font-weight: 600;">Price per PCS (₹) *</label>
+                        <input type="number" step="0.01" min="0" id="pr-price-0" name="lines[0][estimated_unit_price]" value="{{ old('lines.0.estimated_unit_price', '12500.00') }}" required oninput="calcLineTotal(0)" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600;">Est. Total (₹)</label>
+                        <div id="pr-line-total-0" style="padding: 0.5rem; background: #e2e8f0; border-radius: 4px; font-weight: 700; color: #0f172a; text-align: right;">₹ 12,500.00</div>
                     </div>
                 </div>
 
@@ -88,5 +93,34 @@
 
         <button type="submit" class="btn" style="padding: 0.75rem 1.5rem; font-size: 1rem;">Save as Draft</button>
     </form>
+</div>
+
+<script>
+    function updatePriceLabel(idx) {
+        const uomSelect = document.getElementById(`pr-uom-${idx}`);
+        const label = document.getElementById(`pr-price-label-${idx}`);
+        if (uomSelect && label) {
+            const uom = uomSelect.value || 'Unit';
+            label.textContent = `Price per ${uom} (₹) *`;
+        }
+    }
+
+    function calcLineTotal(idx) {
+        const qtyInput = document.getElementById(`pr-qty-${idx}`);
+        const priceInput = document.getElementById(`pr-price-${idx}`);
+        const totalDiv = document.getElementById(`pr-line-total-${idx}`);
+        if (qtyInput && priceInput && totalDiv) {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = qty * price;
+            totalDiv.textContent = '₹ ' + total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updatePriceLabel(0);
+        calcLineTotal(0);
+    });
+</script>
 </div>
 @endsection

@@ -165,6 +165,11 @@ class CreatePurchaseOrder
                 // Base quantity conversion via UomConverter
                 $baseQty = UomConverter::toBase($orderQty, $uomCode, $item);
 
+                // unit_price_base = unit_price / uom factor (DECIMAL 15,4) for price matching across BOX/PCS
+                $uomModel = \App\Models\UnitOfMeasure::where('code', $uomCode)->first();
+                $factor = $uomModel && bccomp((string) $uomModel->factor, '0', 4) > 0 ? (string) $uomModel->factor : '1.0000';
+                $unitPriceBase = bcdiv($unitPrice, $factor, 4);
+
                 // Taxable value = orderQty * unitPrice
                 $taxableValue = bcmul($orderQty, $unitPrice, 2);
 
@@ -192,6 +197,7 @@ class CreatePurchaseOrder
                     'uom_code' => $uomCode,
                     'base_quantity' => $baseQty,
                     'unit_price' => $unitPrice,
+                    'unit_price_base' => $unitPriceBase,
                     'taxable_value' => $taxableValue,
                     'gst_rate' => $gstRate,
                     'cgst' => $cgst,
