@@ -15,11 +15,16 @@ class PurchaseOrder extends Model
         'company_id',
         'po_number',
         'vendor_id',
+        'cost_centre_id',
         'buyer_id',
         'status',
         'subtotal',
+        'total_cgst',
+        'total_sgst',
+        'total_igst',
         'tax_total',
         'total_amount',
+        'grand_total',
         'payment_terms_days',
         'notes',
     ];
@@ -29,10 +34,19 @@ class PurchaseOrder extends Model
         return [
             'status' => PoStatus::class,
             'subtotal' => 'decimal:2',
+            'total_cgst' => 'decimal:2',
+            'total_sgst' => 'decimal:2',
+            'total_igst' => 'decimal:2',
             'tax_total' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'grand_total' => 'decimal:2',
             'payment_terms_days' => 'integer',
         ];
+    }
+
+    public function costCentre()
+    {
+        return $this->belongsTo(CostCentre::class);
     }
 
     public function vendor()

@@ -43,7 +43,11 @@
                     <td><strong>₹ {{ number_format((float) $doc->total_amount, 2) }}</strong></td>
                     <td><span class="badge" style="background-color: #fef3c7; color: #92400e;">Step {{ $step->sequence }}: {{ $step->role->name }}</span></td>
                     <td>
-                        <a href="{{ route('pr.show', $doc) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Review & Act</a>
+                        @if ($step->request->document_type->value === 'PO')
+                            <a href="{{ route('po.show', $doc) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Review & Act</a>
+                        @else
+                            <a href="{{ route('pr.show', $doc) }}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Review & Act</a>
+                        @endif
                     </td>
                 </tr>
             @empty

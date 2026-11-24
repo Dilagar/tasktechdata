@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Enums\ApprovalStepStatus;
 use App\Enums\DocumentType;
+use App\Enums\PoStatus;
 use App\Enums\PrStatus;
 use App\Events\ApprovalCompleted;
+use App\Events\PurchaseOrderApproved;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalStep;
+use App\Models\PurchaseOrder;
 use App\Models\PurchaseRequisition;
 use App\Models\Role;
 use App\Models\User;
@@ -55,9 +58,13 @@ class ApprovalService
             }
 
             // 1. Build the baseline approval chain (role names) from DB rules
+            $amountToEvaluate = $document instanceof PurchaseOrder
+                ? ($document->grand_total ?? $document->total_amount)
+                : $document->total_amount;
+
             $chain = $this->chainBuilder->build(
                 $documentType,
-                $document->total_amount,
+                $amountToEvaluate,
                 $categories,
                 $document->company_id
             );
@@ -104,8 +111,16 @@ class ApprovalService
             }
 
             // 5. Update document status
-            $toStatus = 'SUBMITTED';
-            $document->status = $document instanceof PurchaseRequisition ? PrStatus::SUBMITTED : $toStatus;
+            if ($document instanceof PurchaseRequisition) {
+                $document->status = PrStatus::SUBMITTED;
+                $toStatus = 'SUBMITTED';
+            } elseif ($document instanceof PurchaseOrder) {
+                $document->status = PoStatus::PENDING_APPROVAL;
+                $toStatus = 'PENDING_APPROVAL';
+            } else {
+                $toStatus = 'SUBMITTED';
+                $document->status = $toStatus;
+            }
             $document->save();
 
             // 6. Record append-only audit log
@@ -180,7 +195,13 @@ class ApprovalService
                 $request->save();
 
                 $oldDocStatus = is_object($document->status) ? $document->status->value : (string) $document->status;
-                $document->status = $document instanceof PurchaseRequisition ? PrStatus::APPROVED : 'APPROVED';
+                if ($document instanceof PurchaseRequisition) {
+                    $document->status = PrStatus::APPROVED;
+                } elseif ($document instanceof PurchaseOrder) {
+                    $document->status = PoStatus::APPROVED;
+                } else {
+                    $document->status = 'APPROVED';
+                }
                 $document->save();
 
                 AuditLogger::log(
@@ -191,8 +212,12 @@ class ApprovalService
                     $user->id
                 );
 
-                // Fire event
+                // Fire events
                 event(new ApprovalCompleted($document));
+                if ($document instanceof PurchaseOrder) {
+                    // Dispatch PurchaseOrderApproved event (no listeners for now; budget commitment comes later)
+                    event(new PurchaseOrderApproved($document));
+                }
             } else {
                 // Move current_step to the next pending step sequence
                 $nextStep = $remainingPendingSteps->first();
@@ -268,15 +293,25 @@ class ApprovalService
             $request->status = 'REJECTED';
             $request->save();
 
-            // Mark document as REJECTED (returns back to requester with comment)
+            // Mark document as REJECTED (returns back to requester/buyer with comment)
             $oldDocStatus = is_object($document->status) ? $document->status->value : (string) $document->status;
-            $document->status = $document instanceof PurchaseRequisition ? PrStatus::REJECTED : 'REJECTED';
+            if ($document instanceof PurchaseRequisition) {
+                $document->status = PrStatus::REJECTED;
+                $targetStatus = 'REJECTED';
+            } elseif ($document instanceof PurchaseOrder) {
+                // PO rejection: returns back to DRAFT with the rejection comment visible to the Procurement Officer
+                $document->status = PoStatus::DRAFT;
+                $targetStatus = 'DRAFT';
+            } else {
+                $document->status = 'REJECTED';
+                $targetStatus = 'REJECTED';
+            }
             $document->save();
 
             AuditLogger::log(
                 $document,
                 $oldDocStatus,
-                'REJECTED',
+                $targetStatus,
                 "Rejected by {$user->name} ({$step->role->name}): {$comment}",
                 $user->id
             );

@@ -224,6 +224,13 @@
                 Requisitions (PR)
             </a>
 
+            @if(Auth::user()->hasAnyRole(['Procurement Officer', 'Finance Head', 'CFO', 'Admin']))
+                <a href="{{ route('po.index') }}" class="{{ request()->routeIs('po.*') ? 'active' : '' }}">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    Purchase Orders (PO)
+                </a>
+            @endif
+
             <a href="{{ route('approvals.pending') }}" class="{{ request()->routeIs('approvals.pending') ? 'active' : '' }}">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 Pending Approvals

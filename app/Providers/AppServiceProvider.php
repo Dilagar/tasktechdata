@@ -34,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Vendor::class, VendorPolicy::class);
         Gate::policy(PurchaseRequisition::class, PurchaseRequisitionPolicy::class);
+        Gate::policy(PurchaseOrder::class, \App\Policies\PurchaseOrderPolicy::class);
 
         // Gate: manage-users (Admin only)
         Gate::define('manage-users', function (User $user) {

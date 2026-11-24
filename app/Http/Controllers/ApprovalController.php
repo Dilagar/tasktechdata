@@ -35,12 +35,15 @@ class ApprovalController extends Controller
                     ->where('status', 'PENDING')
                     ->whereColumn('approval_steps.sequence', 'approval_requests.current_step');
             })
-            ->with(['request.document.costCentre', 'request.document.requester', 'role'])
+            ->with(['request.document', 'role'])
             ->get()
             ->filter(function ($step) use ($user) {
                 // Ensure document was NOT created by current user (Self-approval guard)
                 $doc = $step->request->document;
-                $creatorId = $doc?->requester_id ?? $doc?->buyer_id ?? null;
+                if (! $doc) {
+                    return false;
+                }
+                $creatorId = $doc->requester_id ?? $doc->buyer_id ?? null;
                 return (int) $creatorId !== (int) $user->id;
             });
 
