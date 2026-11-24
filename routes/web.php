@@ -50,13 +50,13 @@ Route::middleware('auth')->group(function () {
     Route::prefix('po')->name('po.')->group(function () {
         Route::get('/', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('index');
         Route::get('/create-from-pr', [\App\Http\Controllers\PurchaseOrderController::class, 'createFromPr'])->name('create-from-pr');
-        Route::post('/configure', [\App\Http\Controllers\PurchaseOrderController::class, 'configureConversion'])->name('configure');
+        Route::match(['get', 'post'], '/configure', [\App\Http\Controllers\PurchaseOrderController::class, 'configureConversion'])->name('configure');
         Route::post('/', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('store');
-        Route::get('/{po}', [\App\Http\Controllers\PurchaseOrderController::class, 'show'])->name('show');
-        Route::get('/{po}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->name('edit');
-        Route::put('/{po}', [\App\Http\Controllers\PurchaseOrderController::class, 'update'])->name('update');
-        Route::post('/{po}/submit', [\App\Http\Controllers\PurchaseOrderController::class, 'submit'])->name('submit');
-        Route::post('/{po}/cancel', [\App\Http\Controllers\PurchaseOrderController::class, 'cancel'])->name('cancel');
+        Route::get('/{po}', [\App\Http\Controllers\PurchaseOrderController::class, 'show'])->name('show')->whereNumber('po');
+        Route::get('/{po}/edit', [\App\Http\Controllers\PurchaseOrderController::class, 'edit'])->name('edit')->whereNumber('po');
+        Route::put('/{po}', [\App\Http\Controllers\PurchaseOrderController::class, 'update'])->name('update')->whereNumber('po');
+        Route::post('/{po}/submit', [\App\Http\Controllers\PurchaseOrderController::class, 'submit'])->name('submit')->whereNumber('po');
+        Route::post('/{po}/cancel', [\App\Http\Controllers\PurchaseOrderController::class, 'cancel'])->name('cancel')->whereNumber('po');
     });
 
     /*

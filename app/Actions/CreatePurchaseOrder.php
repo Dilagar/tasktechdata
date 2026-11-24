@@ -109,16 +109,22 @@ class CreatePurchaseOrder
                 $affectedPrs[$pr->id] = $pr;
             }
 
-            // 3. Generate PO Number inside the transaction: PO-YYYYMMDD-0001 (company-scoped)
+            // 3. Generate PO Number inside the transaction
+            // Either company-scoped or globally unique: check existing across table
             $datePrefix = date('Ymd');
             $likePattern = "PO-{$datePrefix}-%";
-            $todayCount = PurchaseOrder::withoutGlobalScopes()
-                ->where('company_id', $buyer->company_id)
+            $todayMax = PurchaseOrder::withoutGlobalScopes()
                 ->where('po_number', 'LIKE', $likePattern)
                 ->lockForUpdate()
-                ->count();
+                ->orderByDesc('id')
+                ->first();
 
-            $sequenceNo = str_pad((string) ($todayCount + 1), 4, '0', STR_PAD_LEFT);
+            $nextNum = 1;
+            if ($todayMax && preg_match('/-(\d+)$/', $todayMax->po_number, $matches)) {
+                $nextNum = ((int) $matches[1]) + 1;
+            }
+
+            $sequenceNo = str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
             $poNumber = "PO-{$datePrefix}-{$sequenceNo}";
 
             // 4. Create Purchase Order header

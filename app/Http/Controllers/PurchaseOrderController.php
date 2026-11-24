@@ -125,7 +125,8 @@ class PurchaseOrderController extends Controller
             return redirect()->route('po.show', $po)
                 ->with('success', "Purchase Order {$po->po_number} generated successfully in DRAFT status.");
         } catch (\Throwable $e) {
-            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+            return redirect()->route('po.create-from-pr')
+                ->withErrors(['error' => $e->getMessage()]);
         }
     }
 
