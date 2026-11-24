@@ -14,9 +14,12 @@ class CompanyScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
-        // Safe for CLI, queue workers, migrations, seeders, or unauthenticated requests
-        if (Auth::check() && Auth::user()->company_id) {
-            $builder->where($model->qualifyColumn('company_id'), Auth::user()->company_id);
+        // Avoid infinite recursion when the User model itself is resolving during Auth::user()
+        if (Auth::hasUser()) {
+            $user = Auth::user();
+            if ($user && $user->company_id) {
+                $builder->where($model->qualifyColumn('company_id'), $user->company_id);
+            }
         }
     }
 }

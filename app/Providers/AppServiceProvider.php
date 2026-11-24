@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Models\Vendor;
+use App\Policies\VendorPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +23,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Vendor::class, VendorPolicy::class);
+
+        // Gate: manage-users (Admin only)
+        Gate::define('manage-users', function (User $user) {
+            return $user->hasRole('Admin');
+        });
+
+        // Gate: manage-vendors (Admin or Procurement Officer)
+        Gate::define('manage-vendors', function (User $user) {
+            return $user->hasAnyRole(['Admin', 'Procurement Officer']);
+        });
+
+        // Gate: manage-masters (Admin or Procurement Officer)
+        Gate::define('manage-masters', function (User $user) {
+            return $user->hasAnyRole(['Admin', 'Procurement Officer']);
+        });
     }
 }
